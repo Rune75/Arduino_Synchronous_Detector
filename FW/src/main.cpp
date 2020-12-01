@@ -1,20 +1,5 @@
 /*
- * sound-meter.ino: Arduino sound meter.
- *
- * This program continuously samples a sound ExitationOnal on analog input 0
- * and outputs the computed sound intensity through the serial port.
- *
- * The analog-to-digital converter is set to "free running mode" and
- * takes one sample every 104 us. After subtracting a DC offset
- * (constant dc_offset below), the samples are squared and low-pass
- * filtered with a time constant of 256 sample periods (26.6 ms). They
- * are then decimated by a factor 256 and transmitted as an ASCII stream
- * at 9600/8N1 through the serial port.
- *
- * The program is intended for an Arduino Uno, and is likely to work on
- * any AVR-based Arduino having an ADC and clocked at 16 MHz.
- *
- * Copyright (c) 2016 Edgar Bonet Orozco.
+ * Copyright (c) 2020 Rune Bekkevold
  * Released under the terms of the MIT license:
  * https://opensource.org/licenses/MIT
  */
@@ -22,12 +7,11 @@
 #include <Arduino.h>
 
 
-
-// Analog input connected to the microphone (between 0 and 5).
+// Analog input connected to the photo sensor (between 0 and 5).
 const uint8_t sensorPin = 0;
 const uint8_t ExPin = 2; //LED_BUILTIN; // 2;
 
-const uint8_t length = 8; // 2^lenggth
+const uint8_t length = 10; // 2^lenggth
 const uint16_t decFact = (int) pow(2, length) - 1;
 
 // Intensity readings provided by the ADC interrupt service routine.
@@ -80,22 +64,22 @@ ISR(ADC_vect)
     }
 
     
-    // int32_t avg_intensity = low_pass(sample, length);
+    int32_t avg_intensity = low_pass(sample, length);
     
-    // // Decimate by a same length as filter
-    // if ((sample_count & decFact ) == 0) {
-    //     intensity_reading = avg_intensity;
-    //     intensity_reading_ready = true;
-    // }
-    static uint32_t avg_intensity;
-    
-    avg_intensity += sample;
-    
-    if ((sample_count & 4095 ) == 0) {
-        intensity_reading = (avg_intensity >> 6);
-        avg_intensity = 0;
+    // Decimate by a same length as filter
+    if ((sample_count & decFact ) == 0) {
+        intensity_reading = avg_intensity;
         intensity_reading_ready = true;
     }
+    // static uint32_t avg_intensity;
+    
+    // avg_intensity += sample;
+    
+    // if ((sample_count & 4095 ) == 0) {
+    //     intensity_reading = (avg_intensity >> 6);
+    //     avg_intensity = 0;
+    //     intensity_reading_ready = true;
+    // }
 
     sample_count++;
 }
