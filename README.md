@@ -12,7 +12,7 @@
 
 
 
-## Full software inplementation using Arduino
+## Full microcontroller inplementation with Atmega328p
 ![Arduino Synchronous detector](specs/Arduino_detector.png)
 
 
@@ -26,7 +26,6 @@ This code demostrates a low frequency lockin amplifier or synchronous ligth dete
 The syncronous detector components ar all realised in software 
 using the Atmega328p builtin ADC as frontend.
 
-  
 
 ##  Basic specs (work in progress)
 ADC raw samplerate is 78.6kHz with estimated > 8 bit resoluition. 
