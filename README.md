@@ -1,30 +1,24 @@
 # Arduino Synchronous Detector
 
+This code demostrates a low frequency lockin amplifier or synchronous ligth detector inplementation using only a Arduino board and 2 additional modules: 
+  1. The OPT101 amplified vissible light photodiode 
+  2. A laser pointer 
+  
+The syncronous detector components ar all realised in software 
+using the Atmega328p builtin ADC as frontend.
+
 
 ## Basic principle
 
 ![Basic principle](specs/lockin_detector-Signals.png)
 
 
-
 ## Analog implementation
 ![Analog Synchronous detector](specs/Analog_detector.png)
 
 
-
 ## Full microcontroller inplementation with Atmega328p
 ![Arduino Synchronous detector](specs/Arduino_detector.png)
-
-
-
-## Description
-This code demostrates a low frequency lockin amplifier or synchronous ligth detector inplementation using only a Arduino board and 2 additional modules:
-  1. Atmega328p Arduino board w synchronous detector inplementation in code
-  2. The OPT101 amplified vissible ligth photodiode 
-  3. A laser pointer 
-  
-The syncronous detector components ar all realised in software 
-using the Atmega328p builtin ADC as frontend.
 
 
 ##  Basic specs (work in progress)
