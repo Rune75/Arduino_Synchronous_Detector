@@ -64,8 +64,7 @@ ISR(ADC_vect)
     // Set up our exitation state for the next 6 samples
     // because for 78.6 kS/s samplerate, division by 6 gives 12.8kHz on the exitation pin,
     // so shold be well within the bandwith of the OPT101 sensor.
-    if ((sample_count & 0b111) == 6) // toggle exitation every 6th sample 
-        This masking is wrong as it wil only be 6 the first time from "0", have to fix 
+    if ((sample_count & 0b111) == 6) // toggle exitation every 6th sample This wil actually be divide by 7
     {
         if (!ExitationOn)
         {
@@ -82,7 +81,7 @@ ISR(ADC_vect)
     static int32_t ADCsampleAccumulator;
     ADCsampleAccumulator += sample; // sum up our samples for one decimation lenght
 
-    if ((sample_count & decimationFactor) == 0) <-- this masking is wrong, have to fix
+    if ((sample_count & decimationFactor) == 0) // This decimation length mask wil inly work as intended if it is power of 2, need to consider this
     { // everytime sample counter reaches decimationFactor number of samples
         if (ADCsampleAccumulator > 0)
         { // Accumulator value is posiotve
