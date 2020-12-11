@@ -30,40 +30,42 @@
 const uint8_t sensorPin = 0;
 const uint8_t ExPin = 2; // Using D2 pin for Laser exitation output
 
-// ADC resolition ioncrease bu oversampling an decimation
+// ADC resolition ioncrease by oversampling an decimation
 const uint8_t ADCincreasedRes = 6;                                  // adding 6 extra bits ADC resolution
 const uint16_t decimationFactor = (int)pow(4, ADCincreasedRes) - 1; // decimate oversampled data by 4^increasedRes
 
 // Light readings provided by the ADC interrupt service routine.
-volatile int32_t lightReading;
-volatile int32_t backGroundLvlReading;
-volatile bool ligthReadingReady;
+volatile int32_t lightReading;              // Our detectir reading result goes here
+volatile int32_t backGroundLvlReading;      // Our ambient ligth measurement result goes here
+volatile bool ligthReadingReady;            
 
 // ADC interrupt service routine.
 // Called each time a conversion result is available.
 ISR(ADC_vect)
 {
-    // Read the ADC.
+    // Read a sample from the ADC.
     int32_t sample = ADC;
     static uint16_t sample_count;
     static uint32_t backgroundLvlAcc;
 
     static bool ExitationOn;
-
+    
+    // Mixer Function:
     // Toggle exitation and sample sign as fast as possible inside our sensor bandwith
     // Default 3dB bandwith for the opt101 is 14kHz so we need to be a bit slower than that
     // This is a simple square wave mixer, I supose we could experiment with a sinewave LUT here
     // but then how can we avoid floating point to make it fast enough?
     if (!ExitationOn)
-    { // If exitation was of for this sample, invert the sample
-        backgroundLvlAcc += sample;
-        sample = -sample;
+    { // If exitation was off when the current sample was aquired, invert the sample sign
+        backgroundLvlAcc += sample;   // lets also get a measurment of the ambient ligth level by averaging only the samples when the exitation is off
+        sample = -sample;             // invert sample sign.
     }
 
     // Set up our exitation state for the next 6 samples
-    // for 78.6 kS/s samplerate, division by 6 gives 12.8kHz on the exitation pin,
-    // so well within the bandwith of the OPT101 sensor.
-    if ((sample_count & 0b111) == 6) // toggle exitation everi 6th sample
+    // because for 78.6 kS/s samplerate, division by 6 gives 12.8kHz on the exitation pin,
+    // so shold be well within the bandwith of the OPT101 sensor.
+    if ((sample_count & 0b111) == 6) // toggle exitation every 6th sample 
+        This masking is wrong as it wil only be 6 the first time from "0", have to fix 
     {
         if (!ExitationOn)
         {
@@ -80,7 +82,7 @@ ISR(ADC_vect)
     static int32_t ADCsampleAccumulator;
     ADCsampleAccumulator += sample; // sum up our samples for one decimation lenght
 
-    if ((sample_count & decimationFactor) == 0)
+    if ((sample_count & decimationFactor) == 0) <-- this masking is wrong, have to fix
     { // everytime sample counter reaches decimationFactor number of samples
         if (ADCsampleAccumulator > 0)
         { // Accumulator value is posiotve
