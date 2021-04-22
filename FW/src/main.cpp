@@ -29,6 +29,11 @@
 // Analog input connected to the photo sensor
 const uint8_t sensorPin = 0;
 const uint8_t ExPin = 2; // Using D2 pin for Laser exitation output
+const uint8_t sampleIndicator = 3; // Indicator pin for sample rate
+const uint8_t serialIndicator = 4; // Indicator pin for serial write
+const uint8_t ADCisrIndicator = 5; // Indicator pin for serial write
+
+
 
 // ADC resolition ioncrease by oversampling an decimation
 const uint8_t ADCincreasedRes = 6;                                  // adding 6 extra bits ADC resolution
@@ -43,6 +48,10 @@ volatile bool ligthReadingReady;
 // Called each time a conversion result is available.
 ISR(ADC_vect)
 {
+    //PORTD ^= _BV(ADCisrIndicator);
+    PORTD = PORTD | _BV(ADCisrIndicator);
+
+
     // Read a sample from the ADC.
     int32_t sample = ADC;
     static uint16_t decimationCounter;
@@ -55,7 +64,7 @@ ISR(ADC_vect)
     
     // Mixer Function:
     // Toggle exitation and sample sign as fast as possible inside our sensor bandwith
-    // Default 3dB bandwith for the opt101 is 14kHz so we need to be a bit slower than that
+    // Default 3dB bandwith for the opt101 is 14kHz so we need to be a bit slower than that.
     // This is a simple square wave mixer, I supose we could experiment with a sinewave LUT here
     // but then how can we avoid floating point to make it fast enough?
     if (!ExitationOn)
@@ -64,10 +73,13 @@ ISR(ADC_vect)
         sample = -sample;             // invert sample sign. this migth need some delay to aligne with the delayed responce from the sensor
     }
 
+    static int32_t ADCsampleAccumulator;
+    ADCsampleAccumulator += sample; // sum up our samples for one decimation lenght
+
     // Set up our exitation state for the next 6 samples
     // because for 76.9 kS/s samplerate, division by 12 gives 6.41kHz on the exitation pin,
     // so shold be well within the bandwith of the OPT101 sensor.
-    if (exitationCounter == 6)     // toggle exitation every 6. sample
+    if (exitationCounter == 30)     // toggle exitation every 6. sample
     {
         if (!ExitationOn)
         {
@@ -80,29 +92,30 @@ ISR(ADC_vect)
             ExitationOn = false;
         }
         exitationCounter = 0;
-    }
+        
+        if (decimationCounter >= decimationFactor) 
+        { // everytime sample counter reaches decimationFactor number of samples
+            if (ADCsampleAccumulator > 0)
+            {   // Accumulator value is posiotve. cast acc to uint and rigthshift with virtual resolution invrease
+                lightReading = (int32_t)(((uint32_t)ADCsampleAccumulator) >> ADCincreasedRes);
+            }
+            else
+            { // Accumulator value is negative, flip sign and cast acc to unsigned before right shift
+                lightReading = -(int32_t)(((uint32_t)-ADCsampleAccumulator) >> ADCincreasedRes);
+            }
+            ADCsampleAccumulator = sample; // reset sample accumulator to previous sample;
 
-    static int32_t ADCsampleAccumulator;
-    ADCsampleAccumulator += sample; // sum up our samples for one decimation lenght
-
-    if (decimationCounter == decimationFactor) 
-    { // everytime sample counter reaches decimationFactor number of samples
-        if (ADCsampleAccumulator > 0)
-        {   // Accumulator value is posiotve. cast acc to uint and rigthshift with virtual resolution invrease
-            lightReading = (int32_t)(((uint32_t)ADCsampleAccumulator) >> ADCincreasedRes);
+            // get ambient light level
+            backGroundLvlReading = (backgroundLvlAcc >> (ADCincreasedRes - 1)); // the ambient level measurement is only haf the number of samples so we shift one bit less
+            backgroundLvlAcc = 0;                                               // reset ambient Acc to 0 //(backGroundLvlReading >> ADCincreasedRes);
+            ligthReadingReady = true;
+            decimationCounter = 0;
+            //digitalWrite(sampleIndicator, !digitalRead(sampleIndicator));
+            PORTD ^= _BV(sampleIndicator);
         }
-        else
-        { // Accumulator value is negative, flip sign and cast acc to unsigned before right shift
-            lightReading = -(int32_t)(((uint32_t)-ADCsampleAccumulator) >> ADCincreasedRes);
-        }
-        ADCsampleAccumulator = sample; // reset sample accumulator to previous sample;
-
-        // get ambient light level
-        backGroundLvlReading = (backgroundLvlAcc >> (ADCincreasedRes - 1)); // the ambient level measurement is only haf the number of samples so we shist one bit less
-        backgroundLvlAcc = 0;                                               // reset ambient Acc to 0 //(backGroundLvlReading >> ADCincreasedRes);
-        ligthReadingReady = true;
-        decimationCounter = 0;
     }
+    PORTD ^= _BV(ADCisrIndicator);
+
 }
 
 void setup()
@@ -119,10 +132,20 @@ void setup()
              | 4;         //4  prescale 16 //5; // prescaler 32. 7;  // prescaler = 128.
 
     // Configure the serial port.
-    Serial.begin(115200);
+    Serial.begin(9600);
     // configure Exitation pin mode and initial state;
     pinMode(ExPin, OUTPUT);
     digitalWrite(ExPin, HIGH);
+
+    pinMode(sampleIndicator, OUTPUT);
+    digitalWrite(sampleIndicator, HIGH);
+
+    pinMode(serialIndicator, OUTPUT);
+    digitalWrite(serialIndicator, HIGH);
+
+    pinMode(ADCisrIndicator, OUTPUT);
+    digitalWrite(ADCisrIndicator, HIGH);
+    
 }
 
 void loop()
@@ -138,10 +161,13 @@ void loop()
     ligthReadingReady = false;
     interrupts();
 
+    digitalWrite(serialIndicator, HIGH);
     // Transmit data.
     Serial.print(backGroundLvlReading_copy);         // Transmit detection level 
     //Serial.print(",");
     //Serial.print(150);
     Serial.print(",");                  
     Serial.println(lighthReading_copy);  // Transmit ambient level
+    digitalWrite(serialIndicator, LOW);
+
 }
