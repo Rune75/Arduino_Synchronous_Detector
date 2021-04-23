@@ -29,9 +29,11 @@
 // Analog input connected to the photo sensor
 const uint8_t sensorPin = 0;
 const uint8_t ExPin = 2; // Using D2 pin for Laser exitation output
+
+// Indicator pins for debugging
 const uint8_t sampleIndicator = 3; // Indicator pin for sample rate
 const uint8_t serialIndicator = 4; // Indicator pin for serial write
-const uint8_t ADCisrIndicator = 5; // Indicator pin for serial write
+const uint8_t ADCisrIndicator = 5; // Indicator pin for ISR(ADC_vect) duration
 
 
 
@@ -40,9 +42,18 @@ const uint8_t ADCincreasedRes = 6;                                  // adding 6 
 const uint16_t decimationFactor = (int)pow(4, ADCincreasedRes); // decimate oversampled data by 4^increasedRes
 
 // Light readings provided by the ADC interrupt service routine.
-volatile int32_t lightReading;              // Our detectir reading result goes here
-volatile int32_t backGroundLvlReading;      // Our ambient ligth measurement result goes here
-volatile bool ligthReadingReady;            
+//int32_t lightReading;              // Our detectir reading result goes here
+//nt32_t backGroundLvlReading;      // Our ambient ligth measurement result goes here
+volatile bool ligthReadingReady;    
+volatile int32_t ADCsampleSum;
+volatile uint32_t ADCbackgroundSum;
+
+struct detectorRes {
+    int32_t resSample;
+    uint32_t backgroundSample;
+};
+
+volatile detectorRes sampleSum;
 
 // ADC interrupt service routine.
 // Called each time a conversion result is available.
@@ -59,6 +70,7 @@ ISR(ADC_vect)
     static uint32_t backgroundLvlAcc;
 
     static bool ExitationOn;
+    static int32_t ADCsampleAccumulator;
     decimationCounter++;
     exitationCounter++;
     
@@ -73,13 +85,23 @@ ISR(ADC_vect)
         sample = -sample;             // invert sample sign. this migth need some delay to aligne with the delayed responce from the sensor
     }
 
-    static int32_t ADCsampleAccumulator;
     ADCsampleAccumulator += sample; // sum up our samples for one decimation lenght
+
+    if (decimationCounter == decimationFactor) 
+    { // everytime sample counter reaches decimationFactor number of samples
+        PORTD = PORTD | _BV(sampleIndicator);
+        sampleSum.resSample = ADCsampleAccumulator;
+        sampleSum.backgroundSample = backgroundLvlAcc;
+        backgroundLvlAcc = 0;                                               // reset ambient Acc to 0 //(backGroundLvlReading >> ADCincreasedRes);
+        decimationCounter = 0;
+        ADCsampleAccumulator = sample; // reset sample accumulator to previous sample;
+        ligthReadingReady = true;
+    }
 
     // Set up our exitation state for the next 6 samples
     // because for 76.9 kS/s samplerate, division by 12 gives 6.41kHz on the exitation pin,
     // so shold be well within the bandwith of the OPT101 sensor.
-    if (exitationCounter == 30)     // toggle exitation every 6. sample
+    if (exitationCounter == 13)     // toggle exitation every 6. sample
     {
         if (!ExitationOn)
         {
@@ -92,30 +114,38 @@ ISR(ADC_vect)
             ExitationOn = false;
         }
         exitationCounter = 0;
-        
-        if (decimationCounter >= decimationFactor) 
-        { // everytime sample counter reaches decimationFactor number of samples
-            if (ADCsampleAccumulator > 0)
-            {   // Accumulator value is posiotve. cast acc to uint and rigthshift with virtual resolution invrease
-                lightReading = (int32_t)(((uint32_t)ADCsampleAccumulator) >> ADCincreasedRes);
-            }
-            else
-            { // Accumulator value is negative, flip sign and cast acc to unsigned before right shift
-                lightReading = -(int32_t)(((uint32_t)-ADCsampleAccumulator) >> ADCincreasedRes);
-            }
-            ADCsampleAccumulator = sample; // reset sample accumulator to previous sample;
+    }    
 
-            // get ambient light level
-            backGroundLvlReading = (backgroundLvlAcc >> (ADCincreasedRes - 1)); // the ambient level measurement is only haf the number of samples so we shift one bit less
-            backgroundLvlAcc = 0;                                               // reset ambient Acc to 0 //(backGroundLvlReading >> ADCincreasedRes);
-            ligthReadingReady = true;
-            decimationCounter = 0;
-            //digitalWrite(sampleIndicator, !digitalRead(sampleIndicator));
-            PORTD ^= _BV(sampleIndicator);
-        }
-    }
+
     PORTD ^= _BV(ADCisrIndicator);
 
+}
+
+detectorRes sampleACCdownConvSimple()
+{
+    detectorRes results;
+    results.resSample = (int32_t)(sampleSum.resSample / pow(2, ADCincreasedRes) );
+
+    // get ambient light level
+    results.backgroundSample = (uint32_t)(sampleSum.backgroundSample / pow(2, ADCincreasedRes -1) ); // the ambient level measurement is only haf the number of samples so we shift one bit less
+    return results;
+}
+
+detectorRes sampleACCdownConv()
+{
+    detectorRes results;
+    if (sampleSum.resSample > 0)
+    {   // Accumulator value is posiotve. cast acc to uint and rigthshift with virtual resolution invrease
+        results.resSample = (int32_t)(((uint32_t)sampleSum.resSample) >> ADCincreasedRes);
+    }
+    else
+    { // Accumulator value is negative, flip sign and cast acc to unsigned before right shift
+        results.resSample = -(int32_t)(((uint32_t)-sampleSum.resSample) >> ADCincreasedRes);
+    }
+
+    // get ambient light level
+    results.backgroundSample = (sampleSum.backgroundSample >> (ADCincreasedRes - 1)); // the ambient level measurement is only haf the number of samples so we shift one bit less
+    return results;
 }
 
 void setup()
@@ -155,19 +185,19 @@ void loop()
         ;
 
     // Get a copy of the detecor result
-    noInterrupts();
-    int32_t lighthReading_copy = lightReading;
-    int32_t backGroundLvlReading_copy = backGroundLvlReading;
+    //noInterrupts();
+    //detectorRes detectorReadings = sampleACCdownConv();
+    detectorRes detectorReadings = sampleACCdownConvSimple();
     ligthReadingReady = false;
-    interrupts();
+    //interrupts();
+    PORTD ^= _BV(sampleIndicator);
 
     digitalWrite(serialIndicator, HIGH);
     // Transmit data.
-    Serial.print(backGroundLvlReading_copy);         // Transmit detection level 
-    //Serial.print(",");
-    //Serial.print(150);
-    Serial.print(",");                  
-    Serial.println(lighthReading_copy);  // Transmit ambient level
+    Serial.print(detectorReadings.backgroundSample);   // Transmit detection level 
+    Serial.print(",");                
+    Serial.println(detectorReadings.resSample);       // Transmit ambient level
+
     digitalWrite(serialIndicator, LOW);
 
 }
