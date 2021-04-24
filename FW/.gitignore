@@ -5,4 +5,7 @@
 .vscode/launch.json
 .vscode/ipch
 *.sal
+<<<<<<< HEAD
 
+=======
+>>>>>>> removeProcessing_from_ISR
