@@ -26,7 +26,9 @@
 
 #include <Arduino.h>
 
-const uint8_t getBbg = 1;  // selection for background ligth level reading or not
+const uint8_t dbgPins = 1;  // 
+const uint8_t dbgPlot = 0;  // 
+
 
 // Analog input connected to the photo sensor
 const uint8_t sensorPin = 0;
@@ -39,20 +41,16 @@ const uint8_t ADCisrIndicator = 5; // Indicator pin for ISR(ADC_vect) duration
 
 
 // ADC resolition ioncrease by oversampling an decimation
-const uint8_t ADCincreasedRes = 5;                                  // adding 6 extra bits ADC resolution
+const uint8_t ADCincreasedRes = 6;                                  // adding 6 extra bits ADC resolution
 const uint16_t decimationFactor = (int)pow(4, ADCincreasedRes); // decimate oversampled data by 4^increasedRes
 const uint8_t exPulseLen = 16;
 
 // Light readings provided by the ADC interrupt service routine.
-//int32_t lightReading;              // Our detectir reading result goes here
-//nt32_t backGroundLvlReading;      // Our ambient ligth measurement result goes here
 volatile bool ligthReadingReady;    
-volatile int32_t ADCsampleSum;
-volatile uint32_t ADCbackgroundSum;
 
 struct detectorRes {
-    int32_t resSample;
-    uint32_t backgroundSample;
+    uint32_t exitationLvl;
+    int32_t backgroundLvl;
 };
 
 volatile detectorRes sampleSum;
@@ -69,10 +67,10 @@ ISR(ADC_vect)
     int32_t sample = ADC;
     static uint16_t decimationCounter;
     static uint8_t exitationCounter;
-    static uint32_t backgroundLvlAcc;
+    static int32_t backgroundLvlAcc;
 
     static bool ExitationOn;
-    static int32_t ADCsampleAccumulator;
+    static int32_t exitationLvlAcc;
     decimationCounter++;
     exitationCounter++;
     
@@ -83,24 +81,23 @@ ISR(ADC_vect)
     // but then how can we avoid floating point to make it fast enough?
     if (!ExitationOn)
     { // If exitation was off when the current sample was aquired, invert the sample sign
-        if (getBbg) backgroundLvlAcc += sample;   // lets also get a measurment of the ambient ligth level by averaging only the samples when the exitation is off
-        sample = -sample;             // invert sample sign. this migth need some delay to aligne with the delayed responce from the sensor
+        //sample = -sample;             // invert sample sign. this migth need some delay to aligne with the delayed responce from the sensor        
+        backgroundLvlAcc += sample;   // lets also get a measurment of the ambient ligth level by averaging only the samples when the exitation is off
+    } else {
+        exitationLvlAcc += sample; // sum up our samples for one decimation lenght
     }
 
-    ADCsampleAccumulator += sample; // sum up our samples for one decimation lenght
 
     if (decimationCounter == decimationFactor) 
     { // everytime sample counter reaches decimationFactor number of samples
         PORTD = PORTD | _BV(sampleIndicator);
-        sampleSum.resSample = ADCsampleAccumulator;
-        if (getBbg) {
-            sampleSum.backgroundSample = backgroundLvlAcc;
-            backgroundLvlAcc = 0;                                               // reset ambient Acc to 0 //(backGroundLvlReading >> ADCincreasedRes);
-        }
-        decimationCounter = 0;
-        exitationCounter = exPulseLen;
+        sampleSum.exitationLvl = exitationLvlAcc;
+        sampleSum.backgroundLvl = backgroundLvlAcc;
+        backgroundLvlAcc = 0;           // reset ambient Acc to 0 //(backGroundLvlReading >> ADCincreasedRes);
+        decimationCounter = 0;          // Reset decimation counter
+        exitationCounter = exPulseLen;  // Reset exitation counter 
 
-        ADCsampleAccumulator = sample; // reset sample accumulator to previous sample;
+        exitationLvlAcc = 0; //sample; // reset sample accumulator to previous sample;
         ligthReadingReady = true;
     }
 
@@ -111,18 +108,16 @@ ISR(ADC_vect)
     {
         if (!ExitationOn)
         {
-            PORTD = PORTD | 0b00000100; // set exitation pin D2 high
+            PORTD = PORTD | 0b00000100; // Set exitation pin D2 high
             ExitationOn = true;
         }
         else
         {
-            PORTD = PORTD & 0b11111011; // set exitation pin D2 low
+            PORTD = PORTD & 0b11111011; // Set exitation pin D2 low
             ExitationOn = false;
         }
         exitationCounter = 0;
     }    
-
-
     PORTD ^= _BV(ADCisrIndicator);
 
 }
@@ -130,27 +125,27 @@ ISR(ADC_vect)
 detectorRes sampleACCdownConvSimple()
 {
     detectorRes results;
-    results.resSample = (int32_t)(sampleSum.resSample / pow(2, ADCincreasedRes) );
+    results.exitationLvl = (uint32_t)(sampleSum.exitationLvl / pow(2, ADCincreasedRes-1));
 
     // get ambient light level
-    if (getBbg) results.backgroundSample = (uint32_t)(sampleSum.backgroundSample / pow(2, ADCincreasedRes -1) ); // the ambient level measurement is only haf the number of samples so we shift one bit less
+    results.backgroundLvl = (int32_t)(sampleSum.backgroundLvl / pow(2, ADCincreasedRes-1)); // the ambient level measurement is only haf the number of samples so we shift one bit less
     return results;
 }
 
 detectorRes sampleACCdownConv()
 {
     detectorRes results;
-    if (sampleSum.resSample > 0)
+    if (sampleSum.exitationLvl > 0)
     {   // Accumulator value is posiotve. cast acc to uint and rigthshift with virtual resolution invrease
-        results.resSample = (int32_t)(((uint32_t)sampleSum.resSample) >> ADCincreasedRes);
+        results.exitationLvl = (int32_t)(((uint32_t)sampleSum.exitationLvl) >> ADCincreasedRes);
     }
     else
     { // Accumulator value is negative, flip sign and cast acc to unsigned before right shift
-        results.resSample = -(int32_t)(((uint32_t)-sampleSum.resSample) >> ADCincreasedRes);
+        results.exitationLvl = -(int32_t)(((uint32_t)-sampleSum.exitationLvl) >> ADCincreasedRes);
     }
 
     // get ambient light level
-    if (getBbg) results.backgroundSample = (sampleSum.backgroundSample >> (ADCincreasedRes - 1)); // the ambient level measurement is only haf the number of samples so we shift one bit less
+    results.backgroundLvl = (sampleSum.backgroundLvl >> (ADCincreasedRes - 1)); // the ambient level measurement is only haf the number of samples so we shift one bit less
     return results;
 }
 
@@ -168,7 +163,7 @@ void setup()
              | 4;         //4  prescale 16 //5; // prescaler 32. 7;  // prescaler = 128.
 
     // Configure the serial port.
-    Serial.begin(9600);
+    Serial.begin(115200);
     // configure Exitation pin mode and initial state;
     pinMode(ExPin, OUTPUT);
     digitalWrite(ExPin, HIGH);
@@ -192,17 +187,20 @@ void loop()
 
     // Get a copy of the detecor result
     //noInterrupts();
-    detectorRes detectorReadings = sampleACCdownConv();
-    //detectorRes detectorReadings = sampleACCdownConvSimple();
+    //detectorRes detectorReadings = sampleACCdownConv();
+    detectorRes detectorReadings = sampleACCdownConvSimple();
     ligthReadingReady = false;
     //interrupts();
     PORTD ^= _BV(sampleIndicator);
 
     digitalWrite(serialIndicator, HIGH);
     // Transmit data.
-    if (getBbg) Serial.print(detectorReadings.backgroundSample/100);   // Transmit detection level 
-    if (getBbg) Serial.print(",");                
-    Serial.println(detectorReadings.resSample);       // Transmit ambient level
+    if (dbgPlot) Serial.print(detectorReadings.backgroundLvl);   // Transmit detection level 
+    if (dbgPlot) Serial.print(",");                
+    if (dbgPlot) Serial.print(detectorReadings.exitationLvl);       // Transmit ambient level
+    if (dbgPlot) Serial.print(",");                
+    Serial.println((detectorReadings.exitationLvl - detectorReadings.backgroundLvl)/1);   // Transmit detection level 
+
 
     digitalWrite(serialIndicator, LOW);
 
