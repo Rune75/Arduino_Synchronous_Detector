@@ -104,7 +104,7 @@ ISR(ADC_vect)
     // Set up our exitation state for the next 6 samples
     // because for 76.9 kS/s samplerate, division by 12 gives 6.41kHz on the exitation pin,
     // so shold be well within the bandwith of the OPT101 sensor.
-    if (exitationCounter == exPulseLen)     // toggle exitation every 6. sample
+    if (exitationCounter == exPulseLen)     // toggle exitation every exPulseLen sample
     {
         if (!ExitationOn)
         {
