@@ -26,6 +26,8 @@
 
 #include <Arduino.h>
 
+const uint8_t getBbg = 1;  // selection for background ligth level reading or not
+
 // Analog input connected to the photo sensor
 const uint8_t sensorPin = 0;
 const uint8_t ExPin = 2; // Using D2 pin for Laser exitation output
@@ -36,10 +38,10 @@ const uint8_t serialIndicator = 4; // Indicator pin for serial write
 const uint8_t ADCisrIndicator = 5; // Indicator pin for ISR(ADC_vect) duration
 
 
-
 // ADC resolition ioncrease by oversampling an decimation
-const uint8_t ADCincreasedRes = 6;                                  // adding 6 extra bits ADC resolution
+const uint8_t ADCincreasedRes = 5;                                  // adding 6 extra bits ADC resolution
 const uint16_t decimationFactor = (int)pow(4, ADCincreasedRes); // decimate oversampled data by 4^increasedRes
+const uint8_t exPulseLen = 16;
 
 // Light readings provided by the ADC interrupt service routine.
 //int32_t lightReading;              // Our detectir reading result goes here
@@ -81,7 +83,7 @@ ISR(ADC_vect)
     // but then how can we avoid floating point to make it fast enough?
     if (!ExitationOn)
     { // If exitation was off when the current sample was aquired, invert the sample sign
-        backgroundLvlAcc += sample;   // lets also get a measurment of the ambient ligth level by averaging only the samples when the exitation is off
+        if (getBbg) backgroundLvlAcc += sample;   // lets also get a measurment of the ambient ligth level by averaging only the samples when the exitation is off
         sample = -sample;             // invert sample sign. this migth need some delay to aligne with the delayed responce from the sensor
     }
 
@@ -91,9 +93,13 @@ ISR(ADC_vect)
     { // everytime sample counter reaches decimationFactor number of samples
         PORTD = PORTD | _BV(sampleIndicator);
         sampleSum.resSample = ADCsampleAccumulator;
-        sampleSum.backgroundSample = backgroundLvlAcc;
-        backgroundLvlAcc = 0;                                               // reset ambient Acc to 0 //(backGroundLvlReading >> ADCincreasedRes);
+        if (getBbg) {
+            sampleSum.backgroundSample = backgroundLvlAcc;
+            backgroundLvlAcc = 0;                                               // reset ambient Acc to 0 //(backGroundLvlReading >> ADCincreasedRes);
+        }
         decimationCounter = 0;
+        exitationCounter = exPulseLen;
+
         ADCsampleAccumulator = sample; // reset sample accumulator to previous sample;
         ligthReadingReady = true;
     }
@@ -101,7 +107,7 @@ ISR(ADC_vect)
     // Set up our exitation state for the next 6 samples
     // because for 76.9 kS/s samplerate, division by 12 gives 6.41kHz on the exitation pin,
     // so shold be well within the bandwith of the OPT101 sensor.
-    if (exitationCounter == 13)     // toggle exitation every 6. sample
+    if (exitationCounter == exPulseLen)     // toggle exitation every 6. sample
     {
         if (!ExitationOn)
         {
@@ -127,7 +133,7 @@ detectorRes sampleACCdownConvSimple()
     results.resSample = (int32_t)(sampleSum.resSample / pow(2, ADCincreasedRes) );
 
     // get ambient light level
-    results.backgroundSample = (uint32_t)(sampleSum.backgroundSample / pow(2, ADCincreasedRes -1) ); // the ambient level measurement is only haf the number of samples so we shift one bit less
+    if (getBbg) results.backgroundSample = (uint32_t)(sampleSum.backgroundSample / pow(2, ADCincreasedRes -1) ); // the ambient level measurement is only haf the number of samples so we shift one bit less
     return results;
 }
 
@@ -144,7 +150,7 @@ detectorRes sampleACCdownConv()
     }
 
     // get ambient light level
-    results.backgroundSample = (sampleSum.backgroundSample >> (ADCincreasedRes - 1)); // the ambient level measurement is only haf the number of samples so we shift one bit less
+    if (getBbg) results.backgroundSample = (sampleSum.backgroundSample >> (ADCincreasedRes - 1)); // the ambient level measurement is only haf the number of samples so we shift one bit less
     return results;
 }
 
@@ -186,16 +192,16 @@ void loop()
 
     // Get a copy of the detecor result
     //noInterrupts();
-    //detectorRes detectorReadings = sampleACCdownConv();
-    detectorRes detectorReadings = sampleACCdownConvSimple();
+    detectorRes detectorReadings = sampleACCdownConv();
+    //detectorRes detectorReadings = sampleACCdownConvSimple();
     ligthReadingReady = false;
     //interrupts();
     PORTD ^= _BV(sampleIndicator);
 
     digitalWrite(serialIndicator, HIGH);
     // Transmit data.
-    Serial.print(detectorReadings.backgroundSample);   // Transmit detection level 
-    Serial.print(",");                
+    if (getBbg) Serial.print(detectorReadings.backgroundSample/100);   // Transmit detection level 
+    if (getBbg) Serial.print(",");                
     Serial.println(detectorReadings.resSample);       // Transmit ambient level
 
     digitalWrite(serialIndicator, LOW);
