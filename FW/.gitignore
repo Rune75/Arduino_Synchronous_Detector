@@ -5,6 +5,9 @@
 .vscode/launch.json
 .vscode/ipch
 *.sal
+data.txt
+liveplot.gnu
+
 <<<<<<< HEAD
 
 =======

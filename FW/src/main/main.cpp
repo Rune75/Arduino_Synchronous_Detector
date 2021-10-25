@@ -78,7 +78,7 @@ ISR(ADC_vect)
     // Toggle exitation and sample sign as fast as possible inside our sensor bandwith
     // Default 3dB bandwith for the opt101 is 14kHz so we need to be a bit slower than that.
     // This is a simple square wave mixer, I supose we could experiment with a sinewave LUT here
-    // but then how can we avoid floating point to make it fast enough?
+    // if we can avoid floating point to make it fast enough?
     if (!ExitationOn)
     { // If exitation was off when the current sample was aquired, invert the sample sign
         //sample = -sample;             // invert sample sign. this migth need some delay to aligne with the delayed responce from the sensor        
@@ -136,7 +136,7 @@ detectorRes sampleACCdownConv()
 {
     detectorRes results;
     if (sampleSum.exitationLvl > 0)
-    {   // Accumulator value is posiotve. cast acc to uint and rigthshift with virtual resolution invrease
+    {   // Accumulator value is positive. cast acc to uint and rigthshift with virtual resolution invrease
         results.exitationLvl = (int32_t)(((uint32_t)sampleSum.exitationLvl) >> ADCincreasedRes);
     }
     else
@@ -145,7 +145,7 @@ detectorRes sampleACCdownConv()
     }
 
     // get ambient light level
-    results.backgroundLvl = (sampleSum.backgroundLvl >> (ADCincreasedRes - 1)); // the ambient level measurement is only haf the number of samples so we shift one bit less
+    results.backgroundLvl = (sampleSum.backgroundLvl >> (ADCincreasedRes - 1)); // the ambient level measurement is only half the number of samples so we shift one bit less
     return results;
 }
 
@@ -164,10 +164,12 @@ void setup()
 
     // Configure the serial port.
     Serial.begin(115200);
+
     // configure Exitation pin mode and initial state;
     pinMode(ExPin, OUTPUT);
     digitalWrite(ExPin, HIGH);
 
+    // Configure the other pins and initial states
     pinMode(sampleIndicator, OUTPUT);
     digitalWrite(sampleIndicator, HIGH);
 
@@ -176,7 +178,6 @@ void setup()
 
     pinMode(ADCisrIndicator, OUTPUT);
     digitalWrite(ADCisrIndicator, HIGH);
-    
 }
 
 void loop()

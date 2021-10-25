@@ -41,8 +41,8 @@ const uint8_t ADCisrIndicator = 5; // Indicator pin for ISR(ADC_vect) duration
 
 
 // ADC resolition ioncrease by oversampling an decimation
-const uint8_t ADCincreasedRes = 6;                                  // adding 6 extra bits ADC resolution
-const uint16_t decimationFactor = (int)pow(4, ADCincreasedRes); // decimate oversampled data by 4^increasedRes
+const uint8_t ADCincreasedRes = 0;                                  // adding 6 extra bits ADC resolution
+const uint16_t decimationFactor = 1;// (int)pow(4, ADCincreasedRes); // decimate oversampled data by 4^increasedRes
 const uint8_t exPulseLen = 16;
 
 // Light readings provided by the ADC interrupt service routine.
@@ -67,39 +67,17 @@ ISR(ADC_vect)
     int32_t sample = ADC;
     static uint16_t decimationCounter;
     static uint8_t exitationCounter;
-    static int32_t backgroundLvlAcc;
 
     static bool ExitationOn;
-    static int32_t exitationLvlAcc;
-    decimationCounter++;
+    static int32_t sampleAcc;
+    //decimationCounter++;
     exitationCounter++;
     
-    // Mixer Function:
-    // Toggle exitation and sample sign as fast as possible inside our sensor bandwith
-    // Default 3dB bandwith for the opt101 is 14kHz so we need to be a bit slower than that.
-    // This is a simple square wave mixer, I supose we could experiment with a sinewave LUT here
-    // but then how can we avoid floating point to make it fast enough?
-    if (!ExitationOn)
-    { // If exitation was off when the current sample was aquired, invert the sample sign
-        //sample = -sample;             // invert sample sign. this migth need some delay to aligne with the delayed responce from the sensor        
-        backgroundLvlAcc += sample;   // lets also get a measurment of the ambient ligth level by averaging only the samples when the exitation is off
-    } else {
-        exitationLvlAcc += sample; // sum up our samples for one decimation lenght
-    }
+    //sampleAcc += sample; // sum up our samples for one decimation lenght
 
+    PORTD = PORTD | _BV(sampleIndicator);
+    sampleSum.exitationLvl = sample; //Acc;
 
-    if (decimationCounter == decimationFactor) 
-    { // everytime sample counter reaches decimationFactor number of samples
-        PORTD = PORTD | _BV(sampleIndicator);
-        sampleSum.exitationLvl = exitationLvlAcc;
-        sampleSum.backgroundLvl = backgroundLvlAcc;
-        backgroundLvlAcc = 0;           // reset ambient Acc to 0 //(backGroundLvlReading >> ADCincreasedRes);
-        decimationCounter = 0;          // Reset decimation counter
-        exitationCounter = exPulseLen;  // Reset exitation counter 
-
-        exitationLvlAcc = 0; //sample; // reset sample accumulator to previous sample;
-        ligthReadingReady = true;
-    }
 
     // Set up our exitation state for the next 6 samples
     // because for 76.9 kS/s samplerate, division by 12 gives 6.41kHz on the exitation pin,
@@ -127,8 +105,6 @@ detectorRes sampleACCdownConvSimple()
     detectorRes results;
     results.exitationLvl = (uint32_t)(sampleSum.exitationLvl / pow(2, ADCincreasedRes-1));
 
-    // get ambient light level
-    results.backgroundLvl = (int32_t)(sampleSum.backgroundLvl / pow(2, ADCincreasedRes-1)); // the ambient level measurement is only haf the number of samples so we shift one bit less
     return results;
 }
 
@@ -143,9 +119,6 @@ detectorRes sampleACCdownConv()
     { // Accumulator value is negative, flip sign and cast acc to unsigned before right shift
         results.exitationLvl = -(int32_t)(((uint32_t)-sampleSum.exitationLvl) >> ADCincreasedRes);
     }
-
-    // get ambient light level
-    results.backgroundLvl = (sampleSum.backgroundLvl >> (ADCincreasedRes - 1)); // the ambient level measurement is only haf the number of samples so we shift one bit less
     return results;
 }
 
@@ -163,7 +136,7 @@ void setup()
              | 4;         //4  prescale 16 //5; // prescaler 32. 7;  // prescaler = 128.
 
     // Configure the serial port.
-    Serial.begin(115200);
+    Serial.begin(1000000);
     // configure Exitation pin mode and initial state;
     pinMode(ExPin, OUTPUT);
     digitalWrite(ExPin, HIGH);
@@ -188,20 +161,17 @@ void loop()
     // Get a copy of the detecor result
     //noInterrupts();
     //detectorRes detectorReadings = sampleACCdownConv();
-    detectorRes detectorReadings = sampleACCdownConvSimple();
+    //detectorRes detectorReadings = sampleACCdownConvSimple();
     ligthReadingReady = false;
     //interrupts();
+    
+
+    //digitalWrite(serialIndicator, HIGH);
+    // Transmit data.
+          
+    Serial.println(sampleSum.exitationLvl);       // Transmit ambient level
     PORTD ^= _BV(sampleIndicator);
 
-    digitalWrite(serialIndicator, HIGH);
-    // Transmit data.
-    if (dbgPlot) Serial.print(detectorReadings.backgroundLvl);   // Transmit detection level 
-    if (dbgPlot) Serial.print(",");                
-    if (dbgPlot) Serial.print(detectorReadings.exitationLvl);       // Transmit ambient level
-    if (dbgPlot) Serial.print(",");                
-    Serial.println((detectorReadings.exitationLvl - detectorReadings.backgroundLvl)/1);   // Transmit detection level 
-
-
-    digitalWrite(serialIndicator, LOW);
+    //digitalWrite(serialIndicator, LOW);
 
 }
