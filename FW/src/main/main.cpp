@@ -26,8 +26,27 @@
 
 #include <Arduino.h>
 
-const uint8_t dbgPins = 1;  // 
-const uint8_t dbgPlot = 0;  // 
+#define DEBUGPRINT 0;
+#ifdef DEBUGPRINT
+    #define DEBUG_PRINT(x)    Serial.print (x)
+    #define DEBUG_PRINTDEC(x) Serial.print (x, DEC)
+    #define DEBUG_PRINTLN(x)  Serial.println (x)
+#else
+    #define DEBUG_PRINT(x)
+    #define DEBUG_PRINTDEC(x)
+    #define DEBUG_PRINTLN(x) 
+#endif
+
+#define DEBUGPINS 0;
+#ifdef DEBUGPINS
+    #define DEBUG_PIN_TOGGLE(x)     PORTD ^= _BV(x);    // Toggle pin
+    #define DEBUG_PIN_SET(x)        PORTD |= _BV(x);    // Set pin high
+    #define DEBUG_PIN_CLR(x)        PORTD &= ~(_BV(x)); // Set pin low
+#else
+    #define DEBUG_PIN_TOGGLE(x)
+    #define DEBUG_PIN_SET(x)
+    #define DEBUG_PIN_CLR(x)
+#endif
 
 
 // Analog input connected to the photo sensor
@@ -54,15 +73,13 @@ struct detectorRes {
     uint32_t exitationLvl;
     int32_t backgroundLvl;
 };
-
 volatile detectorRes sampleSum;
 
 // ADC interrupt service routine.
 // Called each time a conversion result is available.
 ISR(ADC_vect)
 {
-    PORTD = PORTD | _BV(ADCisrIndicator); //DEbug
-
+    DEBUG_PIN_SET(ADCisrIndicator); //DEbug
     // Read a sample from the ADC.
     int32_t sample = ADC;
     
@@ -85,7 +102,7 @@ ISR(ADC_vect)
     // store acumulators when decimationFactor number of samples is reached
     if (decimationCounter == decimationFactor) 
     { 
-        PORTD = PORTD | _BV(sampleIndicator);
+        DEBUG_PIN_SET(sampleIndicator);
         sampleSum.exitationLvl = exitationLvlAcc;
         sampleSum.backgroundLvl = backgroundLvlAcc;
         backgroundLvlAcc = 0;           // reset ambient Acc to 0 
@@ -111,7 +128,7 @@ ISR(ADC_vect)
         }
         exitationCounter = 0;
     }    
-    PORTD ^= _BV(ADCisrIndicator);
+    DEBUG_PIN_TOGGLE(ADCisrIndicator);
 
 }
 
@@ -185,14 +202,14 @@ void loop()
     detectorRes detectorReadings = sampleACCdownConvSimple();
     ligthReadingReady = false;
     //interrupts();
-    PORTD ^= _BV(sampleIndicator);
+    DEBUG_PIN_TOGGLE(sampleIndicator);
 
     digitalWrite(serialIndicator, HIGH);
     // Transmit data.
-    if (dbgPlot) Serial.print(detectorReadings.backgroundLvl);   // Transmit detection level 
-    if (dbgPlot) Serial.print(",");                
-    if (dbgPlot) Serial.print(detectorReadings.exitationLvl);       // Transmit ambient level
-    if (dbgPlot) Serial.print(",");                
+    DEBUG_PRINT(detectorReadings.backgroundLvl);   // Transmit detection level 
+    DEBUG_PRINT(",");                
+    DEBUG_PRINT(detectorReadings.exitationLvl);       // Transmit ambient level
+    DEBUG_PRINT(",");                
     Serial.println((detectorReadings.exitationLvl - detectorReadings.backgroundLvl)/1);   // Transmit detection level 
 
 
