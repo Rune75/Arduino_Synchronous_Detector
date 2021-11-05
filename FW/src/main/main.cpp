@@ -40,9 +40,11 @@ const uint8_t serialIndicator = 4; // Indicator pin for serial write
 const uint8_t ADCisrIndicator = 5; // Indicator pin for ISR(ADC_vect) duration
 
 
-// ADC resolition ioncrease by oversampling an decimation
+// ADC resolition ioncreased by oversampling an decimation
 const uint8_t ADCincreasedRes = 6;                                  // adding 6 extra bits ADC resolution
-const uint16_t decimationFactor = (int)pow(4, ADCincreasedRes); // decimate oversampled data by 4^increasedRes
+const uint16_t decimationFactor = (int)pow(4, ADCincreasedRes);     // decimate oversampled data by 4^increasedRes
+
+// - Exitation pulse length in number of ADC samples
 const uint8_t exPulseLen = 16;
 
 // Light readings provided by the ADC interrupt service routine.
@@ -59,12 +61,11 @@ volatile detectorRes sampleSum;
 // Called each time a conversion result is available.
 ISR(ADC_vect)
 {
-    //PORTD ^= _BV(ADCisrIndicator);
-    PORTD = PORTD | _BV(ADCisrIndicator);
-
+    PORTD = PORTD | _BV(ADCisrIndicator); //DEbug
 
     // Read a sample from the ADC.
     int32_t sample = ADC;
+    
     static uint16_t decimationCounter;
     static uint8_t exitationCounter;
     static int32_t backgroundLvlAcc;
@@ -74,37 +75,29 @@ ISR(ADC_vect)
     decimationCounter++;
     exitationCounter++;
     
-    // Mixer Function:
-    // Toggle exitation and sample sign as fast as possible inside our sensor bandwith
-    // Default 3dB bandwith for the opt101 is 14kHz so we need to be a bit slower than that.
-    // This is a simple square wave mixer, I supose we could experiment with a sinewave LUT here
-    // if we can avoid floating point to make it fast enough?
-    if (!ExitationOn)
-    { // If exitation was off when the current sample was aquired, invert the sample sign
-        //sample = -sample;             // invert sample sign. this migth need some delay to aligne with the delayed responce from the sensor        
-        backgroundLvlAcc += sample;   // lets also get a measurment of the ambient ligth level by averaging only the samples when the exitation is off
+    if (!ExitationOn)                   // If exitation off
+    {       
+        backgroundLvlAcc += sample;     // Acumulate ambient ligth level
     } else {
-        exitationLvlAcc += sample; // sum up our samples for one decimation lenght
+        exitationLvlAcc += sample;      // else Acumulate exited ligth level
     }
 
-
+    // store acumulators when decimationFactor number of samples is reached
     if (decimationCounter == decimationFactor) 
-    { // everytime sample counter reaches decimationFactor number of samples
+    { 
         PORTD = PORTD | _BV(sampleIndicator);
         sampleSum.exitationLvl = exitationLvlAcc;
         sampleSum.backgroundLvl = backgroundLvlAcc;
-        backgroundLvlAcc = 0;           // reset ambient Acc to 0 //(backGroundLvlReading >> ADCincreasedRes);
+        backgroundLvlAcc = 0;           // reset ambient Acc to 0 
         decimationCounter = 0;          // Reset decimation counter
         exitationCounter = exPulseLen;  // Reset exitation counter 
 
         exitationLvlAcc = 0; //sample; // reset sample accumulator to previous sample;
-        ligthReadingReady = true;
+        ligthReadingReady = true; // Tell that acummulators are ready for division
     }
 
-    // Set up our exitation state for the next 6 samples
-    // because for 76.9 kS/s samplerate, division by 12 gives 6.41kHz on the exitation pin,
-    // so shold be well within the bandwith of the OPT101 sensor.
-    if (exitationCounter == exPulseLen)     // toggle exitation every exPulseLen sample
+    // Toggle exitation every exPulseLen sample
+    if (exitationCounter == exPulseLen)     
     {
         if (!ExitationOn)
         {
