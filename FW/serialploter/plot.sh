@@ -11,15 +11,15 @@ speed="115200"
 echo "
 set datafile separator ','
 set xrange [0:500]
-set yrange [-100:300]
-set ylabel 'Detection'
-#set y2range [0:5000]
-#set y2tics 0,500
-#set ytics nomirror
-#set y2label 'Ambient'
+set yrange [200:1000]
+set ylabel 'Detection [LSB]'
+set y2range [40000:60000]
+set y2tics 0,10000
+set ytics nomirror
+set y2label 'Ambient and Exited [LSB]'
 set grid
 #plot '< tail -n 200 data.txt' using 0:1 with lines axes x1y1 title 'Detection', '< tail -n 200 data.txt' using 0:2 with lines axes x1y2 title 'Ambient'
-plot '< tail -n 500 data.txt' using 0:1 with lines axes x1y1 title 'Detection' #, '< tail -n 200 data.txt' using 0:2 with lines axes x1y2 title 'Ambient'
+plot '< tail -n 500 data.txt' using 0:3 with lines axes x1y1 title 'Detected', '< tail -n 500 data.txt' using 0:2 with lines axes x1y2 title 'Exited', '< tail -n 500 data.txt' using 0:1 with lines axes x1y2 title 'Ambient'
 reread" > liveplot.gnu
 
 

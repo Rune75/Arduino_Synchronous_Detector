@@ -26,7 +26,7 @@
 
 #include <Arduino.h>
 
-#define DEBUGPRINT 0;
+#define DEBUGPRINT 1;
 #ifdef DEBUGPRINT
     #define DEBUG_PRINT(x)    Serial.print (x)
     #define DEBUG_PRINTDEC(x) Serial.print (x, DEC)
@@ -37,7 +37,7 @@
     #define DEBUG_PRINTLN(x) 
 #endif
 
-#define DEBUGPINS 0;
+#define DEBUGPINS 1;
 #ifdef DEBUGPINS
     #define DEBUG_PIN_TOGGLE(x)     PORTD ^= _BV(x);    // Toggle pin
     #define DEBUG_PIN_SET(x)        PORTD |= _BV(x);    // Set pin high
