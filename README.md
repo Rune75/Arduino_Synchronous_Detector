@@ -10,7 +10,7 @@ using the Atmega328p builtin ADC as frontend.
 
 ## Basic principle
 
-![Basic principle](specs/lockin_detector-Signals_alt.drawio.png)
+![Basic principle](specs/lockin_detector-Signals.drawio.png)
 
 
 ## Analog implementation
