@@ -25,11 +25,12 @@ By filtering the reflected signal while under exitation and the reflected signal
 
 
 ##  Sampling and signal bandwith (work in progress)
-ADC raw samplerate is 78.6kHz with estimated > 8 bit resoluition. 
-(LSB is a bit unstable becuse of the high samplerate)
-ADC resolution is >14 bit after oversampoling and decimation
-Laser modulation or exitation frequency 12.8kHz, and so also the LO frequency of the sychronous detector.
-After decimation the output samplerate from the detector is 12.8 / 4^6 = 3.125 kS/s
-Ewerything is divided down and synchronous to the ADC raw samplerate clock.
+ADC raw samplerate with prescaler set to 16 in free running mode is 16 MHz/(16*13) ≈ 77kHz. estimated > 8 bit resoluition. 
+(LSB is a bit unstable because of the high samplerate).
+The resulution is then increased by 6 bit trough downsampling by 4^6 = 4096 giving us a downsampled samplerate of 77k / 4096 = 18.79Hz
+The exitation pulse length is set to 16 samples and 50% dudty cycle so the Exitation pulse rate is 77kHz/(2*16) = ~2404Hz.
+The bandwith of the opt101 sensor is 14KHz so 2.4kHz exitation frequency is wel within this band.
+
+Ewerything is divided down from and synchronous to the ADC raw samplerate.
   
   

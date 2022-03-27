@@ -109,8 +109,8 @@ ISR(ADC_vect)
         decimationCounter = 0;          // Reset decimation counter
         exitationCounter = exPulseLen;  // Reset exitation counter 
 
-        exitationLvlAcc = 0; //sample; // reset sample accumulator to previous sample;
-        ligthReadingReady = true; // Tell that acummulators are ready for division
+        exitationLvlAcc = 0;       //sample; // reset sample accumulator to previous sample;
+        ligthReadingReady = true;  // Tell that acummulators are ready for division
     }
 
     // Toggle exitation every exPulseLen sample
