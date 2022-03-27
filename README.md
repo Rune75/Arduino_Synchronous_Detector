@@ -4,9 +4,8 @@ This code demostrates a low frequency lockin amplifier or synchronous ligth dete
   1. The OPT101 amplified vissible light photodiode 
   2. A laser pointer 
   
-The syncronous detector components ar all realised in software 
-using the Atmega328p builtin ADC as frontend.
-
+The syncronous detector components are all realised in software 
+using the Atmega328p builtin ADC as frontend and one GPIO for driving the laserdiode.
 
 ## Basic principle
 
@@ -20,8 +19,12 @@ using the Atmega328p builtin ADC as frontend.
 ## Full microcontroller inplementation with Atmega328p
 ![Arduino Synchronous detector](specs/Arduino_detector.png)
 
+## Expanded view of actual implementation
+By filtering the reflected signal unter exitation and the reflected signal when exitation is off in two separate arrays we are able to also measure and log the backround ligth level.
+![Signals_alt](specs/lockin_detector-Signals_alt.drawio.png)
 
-##  Basic specs (work in progress)
+
+##  Sampling and signal bandwith (work in progress)
 ADC raw samplerate is 78.6kHz with estimated > 8 bit resoluition. 
 (LSB is a bit unstable becuse of the high samplerate)
 ADC resolution is >14 bit after oversampoling and decimation
