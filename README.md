@@ -20,7 +20,7 @@ using the Atmega328p builtin ADC as frontend and one GPIO for driving the laserd
 ![Arduino Synchronous detector](specs/Arduino_detector.png)
 
 ## Expanded view of actual implementation
-By filtering the reflected signal unter exitation and the reflected signal when exitation is off in two separate arrays we are able to also measure and log the backround ligth level.
+By filtering the reflected signal while under exitation and the reflected signal when exitation is off in two separate arrays we are able to also measure and log the backround ligth level.
 ![Signals_alt](specs/lockin_detector-Signals_alt.drawio.png)
 
 
