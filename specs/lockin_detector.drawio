@@ -1,6 +1,6 @@
-<mxfile host="app.diagrams.net" modified="2022-03-27T13:34:23.016Z" agent="5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/98.0.4758.141 Safari/537.36" etag="TV94uKlQsWJX9DKdVTBr" version="17.2.4" type="github" pages="5">
+<mxfile host="app.diagrams.net" modified="2022-03-27T13:49:22.491Z" agent="5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/98.0.4758.141 Safari/537.36" etag="Bz5_Cwtk-duztX2cUGEa" version="17.2.4" type="github" pages="5">
   <diagram id="wkifLEeL6s2k6wNWj1AL" name="Signals">
-    <mxGraphModel dx="946" dy="549" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="826" pageHeight="1169" math="0" shadow="0">
+    <mxGraphModel dx="1351" dy="784" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="826" pageHeight="1169" math="0" shadow="0">
       <root>
         <mxCell id="Tvwaqk257zbarVCUoJn4-0" />
         <mxCell id="Tvwaqk257zbarVCUoJn4-1" parent="Tvwaqk257zbarVCUoJn4-0" />
@@ -515,8 +515,8 @@
         <mxCell id="y0exCxsh5PRNmsqIgSbH-13" value="Time" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;" parent="Tvwaqk257zbarVCUoJn4-1" vertex="1">
           <mxGeometry x="403.2753623188406" y="354.45652173913044" width="40" height="20" as="geometry" />
         </mxCell>
-        <mxCell id="y0exCxsh5PRNmsqIgSbH-16" value="Exitation response from target" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;" parent="Tvwaqk257zbarVCUoJn4-1" vertex="1">
-          <mxGeometry x="323" y="170" width="180" height="20" as="geometry" />
+        <mxCell id="y0exCxsh5PRNmsqIgSbH-16" value="Sampled exitation response from target" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;" parent="Tvwaqk257zbarVCUoJn4-1" vertex="1">
+          <mxGeometry x="298" y="170" width="230" height="20" as="geometry" />
         </mxCell>
         <mxCell id="y0exCxsh5PRNmsqIgSbH-18" value="" style="endArrow=classic;html=1;" parent="Tvwaqk257zbarVCUoJn4-1" source="y0exCxsh5PRNmsqIgSbH-16" edge="1">
           <mxGeometry width="50" height="50" relative="1" as="geometry">
