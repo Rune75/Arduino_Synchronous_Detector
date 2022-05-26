@@ -7,9 +7,11 @@ This code demostrates a low frequency lockin amplifier or synchronous ligth dete
 The syncronous detector components are all realised in software 
 using the Atmega328p builtin ADC as frontend and one GPIO for driving the laserdiode.
 
+## Whys and hows
 The idea behind a synchronous detector or lockin amplifier is best described trough an example. So lets asume we want to detect a moving tasget at some  distance. To be able to do this one cold for example shine some ligth on the target and look for changes in the reflected light. If setting up this experiment with a light source and a photosensor we wil soon discovver that the reflected light variation we are trying to measure is not distingusable variations in the ambient light level as shown in the top figure below. If we instead mudulate our signal source with some frequency and tune and lock our detector to the same frquency and phase we have what is called a synchronous detector setup. as shown below the synchronous demodulation process cancels out ambient noise and we are left with the signal of interest only.
 
-![Frequncy domain](specs/lockin_detector-Freq domain.drawio.png)
+![Frequncy domain](specs/lockin_detector-Freq_domain.drawio.png)
+
 Thie noise cancelation part is a bit hard to grasp in the frequncy domain. but if we instead considder the the modulated sourche here is realy just swithing on an off the ligth source at a constant frequency. On the receiver side we then know that bacground noise will be present in both half periodes of the signal, both when the ligth source is on and when it is off. The demodulator is just a multiplicator that multiplies the signal with a square waveform with amplitude +1 to -1. at the same frequencuy and phase as the source  modulation. The +- multiplication basicaly flips the sign on the noise in ech half periode the nose average over time from the demodulator is therefore zero. this proces is shown in the following figure
 
 ## Basic principle
