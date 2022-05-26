@@ -12,27 +12,25 @@ The idea behind a synchronous detector or lockin amplifier is best described tro
 
 ![Frequncy domain](specs/lockin_detector-Freq_domain.drawio.png)
 
-Thie noise cancelation part is a bit hard to grasp in the frequncy domain. but if we instead considder the the modulated sourche here is realy just swithing on an off the ligth source at a constant frequency. On the receiver side we then know that bacground noise will be present in both half periodes of the signal, both when the ligth source is on and when it is off. The demodulator is just a multiplicator that multiplies the signal with a square waveform with amplitude +1 to -1. at the same frequencuy and phase as the source  modulation. The +- multiplication basicaly flips the sign on the noise in ech half periode the nose average over time from the demodulator is therefore zero. this proces is shown in the following figure
+Thie noise cancelation part is a bit hard to grasp in the frequncy domain, but if we instead considder that the modulated sourche here is realy just swithing on an off the light source at a constant frequency, and on the receiver side we then know that the smame bacground noise will be present in both halfperiodes of the signal, both when the ligth source is on and when it is off. The demodulator is just a multiplicator that multiplies the signal with a square waveform with amplitude +1 to -1. at the same frequencuy and phase as the source modulation. The +- multiplication basicaly flips the sign on the noise in each halfperiode so the noise average over time from the demodulator is therefore zero. This process is shown in the following figure.
 
-## Basic principle
+### Basic principle
 ![Basic principle](specs/lockin_detector-Signals.drawio.png)
 
-
-## Analog implementation
+### Analog implementation
 The anlog implenetation of a locking amplifier is shown below. these devices are built up around a oscilator and a RF mixer where the oscilator is source for both the exitation and the demodulator, this way it is alvays in phase lock.
 ![Analog Synchronous detector](specs/Analog_detector.png)
 
 
-## Full microcontroller inplementation with Atmega328p
+### Full microcontroller inplementation with Atmega328p
 Understanding that a RF mixer is realy just a multiplicator we see that we can easily implement this whole circut in a microcontroller as shown below. 
 ![Arduino Synchronous detector](specs/Arduino_detector.png)
 
-## Expanded view of actual implementation
+### Expanded view of actual implementation
 By filtering the reflected signal while under exitation and the reflected signal when exitation is off in two separate arrays we are able to also measure and log the backround ligth level.
 ![Signals_alt](specs/lockin_detector-Signals_alt.drawio.png)
 
-
-##  Sampling and signal bandwith (work in progress)
+###  Sampling and signal bandwith (work in progress)
 ADC raw samplerate with prescaler set to 16 in free running mode is 16 MHz/(16*13) ≈ 77kHz. estimated > 8 bit resoluition. 
 (LSB is a bit unstable because of the high samplerate).
 The resulution is then increased by 6 bit trough downsampling by 4^6 = 4096 giving us a downsampled samplerate of 77k / 4096 = 18.79Hz
@@ -40,5 +38,3 @@ The exitation pulse length is set to 16 samples and 50% dudty cycle so the Exita
 The bandwith of the opt101 sensor is 14KHz so 2.4kHz exitation frequency is wel within this band.
 
 Ewerything is divided down from and synchronous to the ADC raw samplerate.
-  
-  
