@@ -1,0 +1,33 @@
+"Source:","/home/rune/Repos/Arduino_Synchronous_Detector/HW/drawings/kicad/Arduino_Synchronous_Detector/Arduino_Synchronous_Detector/Arduino_Synchronous_Detector.kicad_sch"
+"Date:","sø. 10. april 2022 kl. 17.48 +0200"
+"Tool:","Eeschema 6.99.0-unknown-b66df1e4f3~148~ubuntu20.04.1"
+"Generator:","/usr/share/kicad-nightly/plugins/bom_csv_grouped_by_value.py"
+"Component Count:","11"
+
+"Individual Components:"
+
+"Item","Qty","Reference(s)","Value","LibPart","Footprint","Datasheet"
+"","","A1","Arduino_Nano_v3.x","MCU_Module:Arduino_Nano_v3.x","Module:Arduino_Nano","http://www.mouser.com/pdfdocs/Gravitech_Arduino_Nano3_0.pdf"
+"","","C1","C","Device:C","Capacitor_SMD:CP_Elec_4x3","~"
+"","","C2","C","Device:C","Capacitor_SMD:CP_Elec_4x3","~"
+"","","D1","D","Device:D","Diode_SMD:D_0201_0603Metric","~"
+"","","D2","D","Device:D","Diode_SMD:D_0201_0603Metric","~"
+"","","LD1","D_Laser_1A3C","Device:D_Laser_1A3C","LED_THT:LED_BL-FL7680RGB","~"
+"","","R1","10k","Device:R","Resistor_SMD:R_0201_0603Metric","~"
+"","","R2","R","Device:R","Resistor_SMD:R_0201_0603Metric","~"
+"","","R3","R","Device:R","Resistor_SMD:R_0201_0603Metric","~"
+"","","R4","R","Device:R","Resistor_SMD:R_0201_0603Metric","~"
+"","","U1","OPT101P","OPT101P:OPT101P","DIP762W46P254L952H419Q8",""
+
+
+
+"Collated Components:"
+
+"Item","Qty","Reference(s)","Value","LibPart","Footprint","Datasheet"
+"1","1","A1","Arduino_Nano_v3.x","MCU_Module:Arduino_Nano_v3.x","Module:Arduino_Nano","http://www.mouser.com/pdfdocs/Gravitech_Arduino_Nano3_0.pdf"
+"2","2","C1, C2","C","Device:C","Capacitor_SMD:CP_Elec_4x3","~"
+"3","2","D1, D2","D","Device:D","Diode_SMD:D_0201_0603Metric","~"
+"4","1","LD1","D_Laser_1A3C","Device:D_Laser_1A3C","LED_THT:LED_BL-FL7680RGB","~"
+"5","1","R1","10k","Device:R","Resistor_SMD:R_0201_0603Metric","~"
+"6","3","R2, R3, R4","R","Device:R","Resistor_SMD:R_0201_0603Metric","~"
+"7","1","U1","OPT101P","OPT101P:OPT101P","DIP762W46P254L952H419Q8",""
