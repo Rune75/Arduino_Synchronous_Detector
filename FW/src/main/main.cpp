@@ -49,96 +49,95 @@
 #endif
 
 
-// Analog input connected to the photo sensor
-const uint8_t sensorPin = 0;
-const uint8_t ExPin = 2; // Using D2 pin for Laser exitation output
+// -- Input and output pins -------------------- 
+const uint8_t sensorPin = 0;        // Analog input connected to the photo sensor
+const uint8_t ExPin = 2;            // Set D2 pin as Laser exitation output
 
-// Indicator pins for debugging
-const uint8_t sampleIndicator = 3; // Indicator pin for sample rate
-const uint8_t serialIndicator = 4; // Indicator pin for serial write
-const uint8_t ADCisrIndicator = 5; // Indicator pin for ISR(ADC_vect) duration
+// -- Debugg output pins ------------------------
+const uint8_t sampleIndicator = 3;  // Indicator pin for sample rate
+const uint8_t serialIndicator = 4;  // Indicator pin for serial write
+const uint8_t ADCisrIndicator = 5;  // Indicator pin for ISR(ADC_vect) duration
 
 
 // ADC resolition ioncreased by oversampling an decimation
-const uint8_t ADCincreasedRes = 6;                                  // adding 6 extra bits ADC resolution
+const uint8_t ADCincreasedRes = 6;                                  // For adding 6 extra bits ADC resolution
 const uint16_t decimationFactor = (int)pow(4, ADCincreasedRes);     // decimate oversampled data by 4^increasedRes
 
-// - Exitation pulse length in number of ADC samples
-const uint8_t exPulseLen = 16;
+const uint8_t exPulseLen = 16;      // Exitation pulse length set in number of ADC samples
+volatile bool ligthReadingReady;    // Light reading ready indicator, provided by the ADC interrupt service routine.
 
-// Light readings provided by the ADC interrupt service routine.
-volatile bool ligthReadingReady;    
-
-struct detectorRes {
+struct detectorRes {                // Results struct 
     uint32_t exitationLvl;
     int32_t backgroundLvl;
 };
-volatile detectorRes sampleSum;
+volatile detectorRes sampleSum;     // Results object
 
-// ADC interrupt service routine.
-// Called each time a conversion result is available.
+
+//-- ADC interrupt service routine -----------------------------------------
+//-- Called each time a conversion result is available.
 ISR(ADC_vect)
 {
-    DEBUG_PIN_SET(ADCisrIndicator); //DEbug
-    // Read a sample from the ADC.
-    int32_t sample = ADC;
-    
-    static uint16_t decimationCounter;
-    static uint8_t exitationCounter;
-    static int32_t backgroundLvlAcc;
+    DEBUG_PIN_SET(ADCisrIndicator); //Debug pin set for indicating that a ADC conversion result is ready, and we entered the interupt routine
 
-    static bool ExitationOn;
-    static int32_t exitationLvlAcc;
+    int32_t sample = ADC;    // Copy the sample from the ADC.
+    
+    // Declare interupt function specific static variables
+    static uint16_t decimationCounter;      // Keeping track of Decimation length
+    static uint8_t exitationCounter;        // Keeping track of number of passed exitation pulses
+    static int32_t backgroundLvlAcc;        // Cumulative sum of Background ligth level readings
+    static bool ExitationOn;                // Indicates state of exitation output
+    static int32_t exitationLvlAcc;         // Cumulative sum of exited light level
+
     decimationCounter++;
     exitationCounter++;
     
-    if (!ExitationOn)                   // If exitation off
-    {       
+    if (!ExitationOn) {                 // If Laser exitation is off
         backgroundLvlAcc += sample;     // Acumulate ambient ligth level
     } else {
-        exitationLvlAcc += sample;      // else Acumulate exited ligth level
+        exitationLvlAcc += sample;      // else acumulate exited ligth level
     }
 
-    // store acumulators when decimationFactor number of samples is reached
+    //-- store acumulators when decimationFactor number of samples is reached
+    //-- Occurs when we have enough summed samples for one output sample
     if (decimationCounter == decimationFactor) 
     { 
-        DEBUG_PIN_SET(sampleIndicator);
-        sampleSum.exitationLvl = exitationLvlAcc;
-        sampleSum.backgroundLvl = backgroundLvlAcc;
-        backgroundLvlAcc = 0;           // reset ambient Acc to 0 
-        decimationCounter = 0;          // Reset decimation counter
-        exitationCounter = exPulseLen;  // Reset exitation counter 
+        DEBUG_PIN_SET(sampleIndicator);             // Debug pin set
+        sampleSum.exitationLvl = exitationLvlAcc;   // Output auccumulated  exited light level readings
+        sampleSum.backgroundLvl = backgroundLvlAcc; // Output auccumulated  background light level readings
+        backgroundLvlAcc = 0;                       // reset ambient Acc to 0 
+        exitationLvlAcc = 0;                        // reset sample accumulator to previous sample;
 
-        exitationLvlAcc = 0;       //sample; // reset sample accumulator to previous sample;
-        ligthReadingReady = true;  // Tell that acummulators are ready for division
+        decimationCounter = 0;                      // Reset decimation counter
+        exitationCounter = exPulseLen;              // Reset exitation counter, syncronizes exitation with sample reading
+
+        ligthReadingReady = true;                   // Tell the world that accummulators are ready for division
     }
 
-    // Toggle exitation every exPulseLen sample
-    if (exitationCounter == exPulseLen)     
-    {
-        if (!ExitationOn)
-        {
+    // Toggle exitation every exPulseLen samples
+    if (exitationCounter == exPulseLen) {
+        if (!ExitationOn) {
             PORTD = PORTD | 0b00000100; // Set exitation pin D2 high
             ExitationOn = true;
         }
-        else
-        {
+        else {
             PORTD = PORTD & 0b11111011; // Set exitation pin D2 low
             ExitationOn = false;
         }
         exitationCounter = 0;
     }    
-    DEBUG_PIN_TOGGLE(ADCisrIndicator);
-
+    DEBUG_PIN_TOGGLE(ADCisrIndicator);  // Debug pin Toggle to indicate interupt routine has finished
 }
 
+Contineue from here
+
+//-- 
 detectorRes sampleACCdownConvSimple()
 {
     detectorRes results;
-    results.exitationLvl = (uint32_t)(sampleSum.exitationLvl / pow(2, ADCincreasedRes-1));
+    results.exitationLvl = (uint32_t)(sampleSum.exitationLvl / pow(2, ADCincreasedRes-1)); ##- wonder if it should not be -1 here ???????? 
 
     // get ambient light level
-    results.backgroundLvl = (int32_t)(sampleSum.backgroundLvl / pow(2, ADCincreasedRes-1)); // the ambient level measurement is only haf the number of samples so we shift one bit less
+    results.backgroundLvl = (int32_t)(sampleSum.backgroundLvl / pow(2, ADCincreasedRes-1)); 
     return results;
 }
 
