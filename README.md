@@ -14,7 +14,7 @@ As shown below the synchronous demodulation process cancels out ambient noise an
 
 ![Frequncy domain](specs/lockin_detector-Freq_domain.drawio.png)
 
-Thie noise cancelation part is a bit hard to grasp in the frequncy domain, but if we instead consider that the modulated source is realy just swithing on an off the light source at a constant frequency, and thus on the receiver side the smame bacground noise will be present in both halfperiodes of the signal, both when the ligth source is on and when it is off. The demodulator is just a multiplicator that multiplies the signal with a square waveform with amplitude +1 to -1. at the same frequencuy and phase as the source modulation. The +- multiplication basicaly flips the sign on the noise in each halfperiode so the noise average over time from the demodulator is close to zero. This process is shown in the following figure.
+Thie noise cancelation part is a bit hard to grasp in the frequncy domain, but if we instead consider that the modulated source is realy just swithing on an off the light source at a constant frequency, and thus on the receiver side the same bacground noise will be present in both halfperiodes of the signal, both when the ligth source is on and when it is off. The demodulator is just a multiplicator that multiplies the signal with a square waveform with amplitude +1 to -1. at the same frequencuy and phase as the source modulation. The +- multiplication basicaly flips the sign on the noise in each halfperiode so the noise average over time from the demodulator is close to zero. This process is shown in the following figure.
 
 ### Basic principle
 ![Basic principle](specs/lockin_detector-Signals.drawio.png)
