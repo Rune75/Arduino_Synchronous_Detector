@@ -31,10 +31,12 @@
     #define DEBUG_PRINT(x)    Serial.print (x)
     #define DEBUG_PRINTDEC(x) Serial.print (x, DEC)
     #define DEBUG_PRINTLN(x)  Serial.println (x)
+    #define DBG_PRINTF(y,x)  Serial.print(y); Serial.println(x);
 #else
     #define DEBUG_PRINT(x)
     #define DEBUG_PRINTDEC(x)
     #define DEBUG_PRINTLN(x) 
+    #define DBG_PRINTF(y,x)
 #endif
 
 #define DEBUGPINS 1;
@@ -69,6 +71,7 @@ volatile bool ligthReadingReady;    // Light reading ready indicator, provided b
 struct detectorRes {                // Results struct 
     uint32_t exitationLvl;
     int32_t backgroundLvl;
+    int32_t differenceLvl;
 };
 volatile detectorRes sampleSum;     // Results object
 
@@ -128,17 +131,18 @@ ISR(ADC_vect)
     DEBUG_PIN_TOGGLE(ADCisrIndicator);  // Debug pin Toggle to indicate interupt routine has finished
 }
 
-Contineue from here
 
 //-- 
 detectorRes sampleACCdownConvSimple()
 {
-    detectorRes results;
-    results.exitationLvl = (uint32_t)(sampleSum.exitationLvl / pow(2, ADCincreasedRes-1)); ##- wonder if it should not be -1 here ???????? 
+    detectorRes res;
+    res.exitationLvl = (uint32_t)(sampleSum.exitationLvl / pow(2, ADCincreasedRes-1)); // ##- wonder if it should not be -1 here ???????? 
 
     // get ambient light level
-    results.backgroundLvl = (int32_t)(sampleSum.backgroundLvl / pow(2, ADCincreasedRes-1)); 
-    return results;
+    res.backgroundLvl = (int32_t)(sampleSum.backgroundLvl / pow(2, ADCincreasedRes-1));
+
+    res.differenceLvl = (int32_t) (res.exitationLvl - res.backgroundLvl);
+    return res;
 }
 
 detectorRes sampleACCdownConv()
@@ -191,26 +195,22 @@ void setup()
 
 void loop()
 {
-    // Wait for interupt action to hsppen and saying a reading a reading is available.
-    while (!ligthReadingReady) /* wait */
+    // Wait for interupt routine to finsh, saying a reading a reading is available.
+    while (!ligthReadingReady) /* wait for interupt */
         ;
-
+    ligthReadingReady = false;
+    
     // Get a copy of the detecor result
-    //noInterrupts();
     //detectorRes detectorReadings = sampleACCdownConv();
     detectorRes detectorReadings = sampleACCdownConvSimple();
-    ligthReadingReady = false;
-    //interrupts();
     DEBUG_PIN_TOGGLE(sampleIndicator);
 
     digitalWrite(serialIndicator, HIGH);
-    // Transmit data.
-    DEBUG_PRINT(detectorReadings.backgroundLvl);   // Transmit detection level 
-    DEBUG_PRINT(",");                
-    DEBUG_PRINT(detectorReadings.exitationLvl);       // Transmit ambient level
-    DEBUG_PRINT(",");                
-    Serial.println((detectorReadings.exitationLvl - detectorReadings.backgroundLvl)/1);   // Transmit detection level 
 
+    //- print out results for Teleplot---
+    DBG_PRINTF(">BackGround:", detectorReadings.backgroundLvl);     // Print Background level
+    DBG_PRINTF(">ExitedLvl:", detectorReadings.exitationLvl);       // Primt Reflected level + ambient
+    DBG_PRINTF(">Result:", detectorReadings.differenceLvl);
 
     digitalWrite(serialIndicator, LOW);
 
